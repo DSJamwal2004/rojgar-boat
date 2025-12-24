@@ -12,6 +12,7 @@ function AIRecommendedJobs() {
   const [jobs, setJobs] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState("ai");
 
   useEffect(() => {
     // 🔒 Reset AI match count on page load
@@ -70,13 +71,11 @@ function AIRecommendedJobs() {
     if (job.matchedSkills && job.matchedSkills.length > 0) {
       return `Matched skills: ${job.matchedSkills.join(", ")}`;
     }
-
     if (job.skillsRequired && job.skillsRequired.length > 0) {
       return `Relevant to your skills: ${job.skillsRequired
         .slice(0, 3)
         .join(", ")}`;
     }
-
     return "Matched based on your profile and experience";
   };
 
@@ -88,7 +87,7 @@ function AIRecommendedJobs() {
     return "Low match";
   };
 
-  /* 🕒 Job freshness (same as GPS) */
+  /* 🕒 Job freshness */
   const getFreshness = (date) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -100,12 +99,39 @@ function AIRecommendedJobs() {
     return `${Math.floor(mins / 1440)} days ago`;
   };
 
+  /* 🔀 Sorting logic */
+  const sortedJobs = [...jobs].sort((a, b) => {
+    if (sortBy === "ai") {
+      return (b.aiScore || 0) - (a.aiScore || 0);
+    }
+    if (sortBy === "newest") {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    if (sortBy === "salary") {
+      return (b.salary || 0) - (a.salary || 0);
+    }
+    return 0;
+  });
+
   return (
     <OceanLayout>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-3xl shadow-xl px-8 py-10 mx-auto">
-        <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-2 text-gray-900">
-          AI Recommended Jobs
-        </h2>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-center md:text-left text-gray-900">
+            AI Recommended Jobs
+          </h2>
+
+          {/* 🔀 Sort dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="mt-4 md:mt-0 border rounded-xl px-4 py-2 text-sm font-semibold bg-white shadow-sm"
+          >
+            <option value="ai">Best AI match</option>
+            <option value="newest">Newest first</option>
+            <option value="salary">Highest salary</option>
+          </select>
+        </div>
 
         <p className="text-center text-gray-600 mb-8 text-sm">
           Jobs matched using your skills, experience, and profile.
@@ -117,15 +143,15 @@ function AIRecommendedJobs() {
           <p className="text-center text-red-500 mb-6">{message}</p>
         )}
 
-        {!loading && jobs.length === 0 && !message && (
+        {!loading && sortedJobs.length === 0 && !message && (
           <p className="text-center text-gray-500">
             No AI recommendations available yet.
           </p>
         )}
 
-        {!loading && jobs.length > 0 && (
+        {!loading && sortedJobs.length > 0 && (
           <div className="grid gap-8">
-            {jobs.map((job) => (
+            {sortedJobs.map((job) => (
               <div key={job._id}>
                 {/* 🕒 Posted time */}
                 <div className="flex justify-between text-sm text-gray-500 mb-2">
@@ -162,6 +188,7 @@ function AIRecommendedJobs() {
 }
 
 export default AIRecommendedJobs;
+
 
 
 
