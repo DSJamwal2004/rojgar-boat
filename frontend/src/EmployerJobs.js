@@ -3,6 +3,11 @@ import { Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function EmployerJobs() {
   const [jobs, setJobs] = useState([]);
   const [message, setMessage] = useState("");
@@ -10,27 +15,36 @@ function EmployerJobs() {
 
   const token = localStorage.getItem("employerToken");
 
-  const fetchJobs = () => {
+  const fetchJobs = async () => {
     setLoading(true);
+    setMessage("");
 
-    fetch("/api/jobs/my", {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) {
-          setMessage(data.error);
-        } else {
-          setJobs(data);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setMessage("Failed to load jobs");
-        setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/jobs/my`, {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
       });
+
+      const text = await res.text();
+      let data = null;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to load jobs");
+      }
+
+      setJobs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setMessage(err.message || "Failed to load jobs");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -44,37 +58,43 @@ function EmployerJobs() {
 
   // 🗑️ DELETE JOB HANDLER
   const handleDeleteJob = async (jobId) => {
-    const confirm = window.confirm(
+    const confirmDelete = window.confirm(
       "Are you sure you want to delete this job?\n\nAll related applications will also be removed."
     );
 
-    if (!confirm) return;
+    if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/jobs/${jobId}`, {
+      const res = await fetch(`${API_BASE}/api/jobs/${jobId}`, {
         method: "DELETE",
         headers: {
           Authorization: "Bearer " + token,
         },
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = null;
 
-      if (data.error) {
-        alert(data.error);
-      } else {
-        alert("Job deleted successfully.");
-        fetchJobs(); // 🔄 refresh list
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
       }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete job");
+      }
+
+      alert("Job deleted successfully.");
+      fetchJobs(); // 🔄 refresh list
     } catch (err) {
-      alert("Failed to delete job.");
+      alert(err.message || "Failed to delete job.");
     }
   };
 
   return (
     <OceanLayout>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-3xl shadow-xl px-8 py-10 mx-auto">
-        {/* Header */}
         <h2 className="text-3xl md:text-4xl font-extrabold mb-2 text-center text-gray-900">
           My Posted Jobs
         </h2>
@@ -140,7 +160,6 @@ function EmployerJobs() {
                   </p>
                 </div>
 
-                {/* ACTION BUTTONS */}
                 <div className="flex flex-wrap gap-4 mt-5">
                   <Link
                     to={`/employer/applications/${job._id}`}
@@ -166,6 +185,7 @@ function EmployerJobs() {
 }
 
 export default EmployerJobs;
+
 
 
 
