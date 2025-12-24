@@ -2,6 +2,11 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function RateWorker() {
   const { workerId } = useParams();
   const navigate = useNavigate();
@@ -25,25 +30,35 @@ function RateWorker() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`/api/workers/rate/${workerId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + token,
-        },
-        body: JSON.stringify({ rating: Number(rating) }),
-      });
+      const res = await fetch(
+        `${API_BASE}/api/workers/rate/${workerId}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({ rating: Number(rating) }),
+        }
+      );
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = null;
 
-      if (data.error) {
-        alert(data.error);
-      } else {
-        alert(data.message || "Worker rated successfully!");
-        navigate(-1); // go back to applications
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
       }
-    } catch {
-      alert("Failed to submit rating.");
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to submit rating.");
+      }
+
+      alert(data?.message || "Worker rated successfully!");
+      navigate(-1); // go back to applications
+    } catch (err) {
+      alert(err.message || "Failed to submit rating.");
     } finally {
       setSubmitting(false);
     }
@@ -90,6 +105,7 @@ function RateWorker() {
 }
 
 export default RateWorker;
+
 
 
 
