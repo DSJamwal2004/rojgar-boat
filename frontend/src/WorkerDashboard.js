@@ -9,11 +9,16 @@ import {
   MapPin,
 } from "lucide-react";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function WorkerDashboard() {
   const workerId = localStorage.getItem("workerId");
   const token = localStorage.getItem("workerToken");
 
-  // 🔒 Lock AI matches ONCE from localStorage
+  /* 🔒 Lock AI matches ONCE */
   const initialAIMatches =
     Number(localStorage.getItem("aiMatchesCount")) || 0;
 
@@ -25,31 +30,40 @@ function WorkerDashboard() {
     gpsMatches: 0,
   });
 
-  // ---------------------------------
-  // Fetch worker application stats
-  // ---------------------------------
+  /* ---------------------------------
+     Fetch worker application stats
+  ---------------------------------- */
   useEffect(() => {
     if (!workerId || !token) return;
 
-    fetch("/api/workers/stats", {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/workers/stats`, {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
         if (!data?.error) {
           setStats((prev) => ({
             ...prev,
-            totalApplied: data.totalApplied,
-            accepted: data.accepted,
-            rejected: data.rejected,
-            gpsMatches: data.gpsMatches,
-            // ❌ DO NOT touch aiMatches here
+            totalApplied: data.totalApplied ?? 0,
+            accepted: data.accepted ?? 0,
+            rejected: data.rejected ?? 0,
+            gpsMatches: data.gpsMatches ?? 0,
+            // ❗ aiMatches intentionally untouched
           }));
         }
-      })
-      .catch(() => console.log("Stats fetch failed"));
+      } catch (err) {
+        console.log("Stats fetch failed");
+      }
+    };
+
+    fetchStats();
   }, [workerId, token]);
 
   return (
@@ -102,8 +116,7 @@ function WorkerDashboard() {
 
         {/* 🔘 Actions */}
         <div className="space-y-4">
-
-          <Link to="/worker/profile">  
+          <Link to="/worker/profile">
             <button className="w-full py-3 rounded-xl font-semibold text-white
               bg-gradient-to-r from-purple-600 to-purple-700
               hover:from-purple-700 hover:to-purple-800 transition">
@@ -145,10 +158,8 @@ function WorkerDashboard() {
 
           <button
             onClick={() => {
-              localStorage.removeItem("workerToken");
-              localStorage.removeItem("workerId");
-              localStorage.removeItem("aiMatchesCount");
-              window.location.reload();
+              localStorage.clear();
+              window.location.href = "/";
             }}
             className="w-full py-3 rounded-xl font-semibold text-white
               bg-gradient-to-r from-red-600 to-red-700
@@ -184,6 +195,7 @@ function Stat({ icon, value, label, bg, span }) {
 }
 
 export default WorkerDashboard;
+
 
 
 
