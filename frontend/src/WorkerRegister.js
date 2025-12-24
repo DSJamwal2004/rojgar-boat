@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
 
-/* ✅ ADD THIS (safe for local + Vercel) */
+/* ✅ BACKEND BASE URL (Render) */
 const API_BASE =
   process.env.REACT_APP_API_URL ||
   "https://rojgar-boat-backend.onrender.com";
@@ -24,10 +24,12 @@ function WorkerRegister() {
   const [coords, setCoords] = useState(null);
   const [message, setMessage] = useState("");
 
+  /* ---------- FORM HANDLING ---------- */
   const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  /* ---------- GPS LOCATION ---------- */
   const handleUseLocation = () => {
     if (!navigator.geolocation) {
       setMessage("Geolocation is not supported by your browser.");
@@ -37,13 +39,17 @@ function WorkerRegister() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setCoords({ type: "Point", coordinates: [longitude, latitude] });
+        setCoords({
+          type: "Point",
+          coordinates: [longitude, latitude],
+        });
         setMessage("Location captured successfully!");
       },
       () => setMessage("Failed to get location.")
     );
   };
 
+  /* ---------- SUBMIT ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -75,13 +81,13 @@ function WorkerRegister() {
     };
 
     try {
-      /* ✅ ONLY THIS LINE IS CHANGED */
       const res = await fetch(`${API_BASE}/api/workers/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
+      /* 🛑 SAFETY: handle non-JSON responses */
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Registration failed");
@@ -89,18 +95,19 @@ function WorkerRegister() {
 
       const data = await res.json();
 
-      if (data.error) {
+      if (data?.error) {
         setMessage(data.error);
         return;
       }
 
-      setMessage("Registration successful! You can now log in.");
+      setMessage("Registration successful! Redirecting to login...");
       setTimeout(() => navigate("/worker-login"), 800);
     } catch (err) {
-      setMessage(err.message || "Something went wrong");
+      setMessage(err.message || "Something went wrong.");
     }
   };
 
+  /* ---------- UI ---------- */
   return (
     <OceanLayout>
       <div className="w-full max-w-3xl bg-white/90 backdrop-blur-md shadow-xl rounded-3xl px-8 py-10 border">
@@ -116,19 +123,17 @@ function WorkerRegister() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-1">Name</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Age */}
           <div>
             <label className="block text-sm font-medium mb-1">Age</label>
             <input
@@ -140,7 +145,6 @@ function WorkerRegister() {
             />
           </div>
 
-          {/* Gender */}
           <div>
             <label className="block text-sm font-medium mb-1">Gender</label>
             <select
@@ -150,13 +154,12 @@ function WorkerRegister() {
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Other</option>
             </select>
           </div>
 
-          {/* Phone */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Phone Number
@@ -165,12 +168,11 @@ function WorkerRegister() {
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Skills */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">
               Skills (comma separated)
@@ -179,12 +181,11 @@ function WorkerRegister() {
               name="skills"
               value={form.skills}
               onChange={handleChange}
+              placeholder="Electrician, Sweeper, Shop helper..."
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
-              placeholder="Electrician, Shop helper, Sweeper..."
             />
           </div>
 
-          {/* Location */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">
               Location (village / area)
@@ -199,28 +200,24 @@ function WorkerRegister() {
             <button
               type="button"
               onClick={handleUseLocation}
-              className="mt-3 inline-flex items-center px-4 py-1.5 text-sm rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 transition"
+              className="mt-3 px-4 py-1.5 text-sm rounded-xl border border-blue-600 text-blue-600 hover:bg-blue-50 transition"
             >
               Use My Location
             </button>
           </div>
 
-          {/* Password */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium mb-1">Password</label>
             <input
               type="password"
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Confirm Password
@@ -230,12 +227,11 @@ function WorkerRegister() {
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          {/* Submit */}
           <div className="md:col-span-2">
             <button
               type="submit"
@@ -265,6 +261,7 @@ function WorkerRegister() {
 }
 
 export default WorkerRegister;
+
 
 
 
