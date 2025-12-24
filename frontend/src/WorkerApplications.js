@@ -2,11 +2,14 @@ import React, { useEffect, useState } from "react";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+const API_BASE =
+  process.env.REACT_APP_API_URL || "https://rojgar-boat-backend.onrender.com";
+
 function WorkerApplications() {
   const [apps, setApps] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState("newest"); // 🔹 NEW
+  const [sortOrder, setSortOrder] = useState("newest");
 
   const token = localStorage.getItem("workerToken");
 
@@ -17,22 +20,43 @@ function WorkerApplications() {
       return;
     }
 
-    fetch("/api/applications/worker/all", {
-      headers: { Authorization: "Bearer " + token },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.error) setMessage(data.error);
-        else setApps(data);
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/applications/worker/all`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        // 🔒 Handle non-JSON responses safely
+        const text = await res.text();
+        let data = null;
+
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          throw new Error("Invalid server response");
+        }
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to load applications.");
+        }
+
+        setApps(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setMessage(err.message || "Failed to load applications.");
+      } finally {
         setLoading(false);
-      })
-      .catch(() => {
-        setMessage("Failed to load applications.");
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchApplications();
   }, [token]);
 
-  // 🔹 SORTED APPLICATIONS
+  /* 🔹 SORTING */
   const sortedApps = [...apps].sort((a, b) => {
     const dateA = new Date(a.appliedAt);
     const dateB = new Date(b.appliedAt);
@@ -64,7 +88,6 @@ function WorkerApplications() {
             My Job Applications
           </h2>
 
-          {/* 🔹 SORT DROPDOWN */}
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
@@ -78,19 +101,19 @@ function WorkerApplications() {
         {/* Loader */}
         {loading && <BoatLoader label="Loading your applications..." />}
 
-        {/* Message */}
+        {/* Error message */}
         {!loading && message && (
           <p className="text-center text-red-500">{message}</p>
         )}
 
-        {/* Empty State */}
-        {!loading && sortedApps.length === 0 && !message && (
+        {/* Empty state */}
+        {!loading && !message && sortedApps.length === 0 && (
           <p className="text-center text-gray-500">
             You have not applied to any jobs.
           </p>
         )}
 
-        {/* Applications */}
+        {/* Applications list */}
         {!loading && sortedApps.length > 0 && (
           <div className="space-y-6">
             {sortedApps.map((app) => (
@@ -98,7 +121,6 @@ function WorkerApplications() {
                 key={app._id}
                 className="border rounded-2xl shadow-sm hover:shadow-md transition bg-white p-6"
               >
-                {/* HEADER */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-3">
                   <h3 className="text-xl font-bold">
                     {app.jobId?.title || "Job Removed"}
@@ -106,13 +128,14 @@ function WorkerApplications() {
                   {renderStatus(app.status)}
                 </div>
 
-                {/* JOB INFO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
                   <p>
-                    <strong>📍 Location:</strong> {app.jobId?.location || "N/A"}
+                    <strong>📍 Location:</strong>{" "}
+                    {app.jobId?.location || "N/A"}
                   </p>
                   <p>
-                    <strong>💰 Salary:</strong> ₹{app.jobId?.salary || "N/A"}
+                    <strong>💰 Salary:</strong>{" "}
+                    {app.jobId?.salary ? `₹${app.jobId.salary}` : "N/A"}
                   </p>
                   <p>
                     <strong>🗓 Applied On:</strong>{" "}
@@ -124,13 +147,11 @@ function WorkerApplications() {
                   </p>
                 </div>
 
-                {/* EMPLOYER DETAILS */}
                 {app.jobId?.employerId && (
                   <div className="mt-4 p-4 bg-gray-50 rounded-xl border">
                     <h4 className="font-semibold mb-2 text-gray-800">
                       Employer Details
                     </h4>
-
                     <p>
                       <strong>Name:</strong>{" "}
                       {app.jobId.employerId.name}
@@ -155,6 +176,7 @@ function WorkerApplications() {
 }
 
 export default WorkerApplications;
+
 
 
 
