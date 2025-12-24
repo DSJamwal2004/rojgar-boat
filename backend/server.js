@@ -7,7 +7,7 @@ require("dotenv").config();
 const app = express();
 
 /* ============================
-   ✅ CORS CONFIG (FIXED)
+   ✅ CORS (FINAL & SAFE)
    ============================ */
 app.use(
   cors({
@@ -15,14 +15,9 @@ app.use(
       "http://localhost:3000",
       "https://rojgar-boat.vercel.app",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
-
-// ✅ VERY IMPORTANT: handle preflight requests
-app.options("*", cors());
 
 /* ============================
    MIDDLEWARE
@@ -57,5 +52,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
 
 
