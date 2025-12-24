@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
-import API_BASE from "./api"; // ✅ backend base URL
+
+/* ✅ BACKEND BASE URL (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
 
 function EmployerRegister() {
   const navigate = useNavigate();
@@ -18,10 +22,12 @@ function EmployerRegister() {
 
   const [message, setMessage] = useState("");
 
+  /* ---------- FORM HANDLING ---------- */
   const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  /* ---------- SUBMIT ---------- */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -52,24 +58,27 @@ function EmployerRegister() {
         body: JSON.stringify(payload),
       });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        throw new Error("Invalid server response");
-      }
-
+      /* 🛑 SAFETY: handle non-JSON / error responses */
       if (!res.ok) {
-        throw new Error(data?.error || "Registration failed");
+        const text = await res.text();
+        throw new Error(text || "Registration failed");
       }
 
-      setMessage("Registration successful! You can now log in.");
+      const data = await res.json();
+
+      if (data?.error) {
+        setMessage(data.error);
+        return;
+      }
+
+      setMessage("Registration successful! Redirecting to login...");
       setTimeout(() => navigate("/employer-login"), 800);
     } catch (err) {
-      setMessage(err.message);
+      setMessage(err.message || "Something went wrong.");
     }
   };
 
+  /* ---------- UI ---------- */
   return (
     <OceanLayout>
       <div className="w-full max-w-3xl bg-white/90 backdrop-blur-md shadow-xl rounded-3xl px-8 py-10 border">
@@ -85,19 +94,17 @@ function EmployerRegister() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
-          {/* Name */}
           <div>
             <label className="block text-sm font-medium mb-1">Name</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Phone */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Phone Number
@@ -106,12 +113,11 @@ function EmployerRegister() {
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium mb-1">Email</label>
             <input
@@ -123,7 +129,6 @@ function EmployerRegister() {
             />
           </div>
 
-          {/* Organization */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Shop / Organization
@@ -136,7 +141,6 @@ function EmployerRegister() {
             />
           </div>
 
-          {/* Location */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium mb-1">
               Location (village / area)
@@ -149,7 +153,6 @@ function EmployerRegister() {
             />
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Password
@@ -159,12 +162,11 @@ function EmployerRegister() {
               name="password"
               value={form.password}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Confirm Password */}
           <div>
             <label className="block text-sm font-medium mb-1">
               Confirm Password
@@ -174,12 +176,11 @@ function EmployerRegister() {
               name="confirmPassword"
               value={form.confirmPassword}
               onChange={handleChange}
-              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
               required
+              className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* Submit */}
           <div className="md:col-span-2">
             <button
               type="submit"
@@ -209,6 +210,7 @@ function EmployerRegister() {
 }
 
 export default EmployerRegister;
+
 
 
 
