@@ -1,5 +1,10 @@
 import React from "react";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function JobCard({ job }) {
   const token = localStorage.getItem("workerToken");
 
@@ -9,21 +14,32 @@ function JobCard({ job }) {
       return;
     }
 
-    const res = await fetch("/api/applications/apply", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: "Bearer " + token,
-      },
-      body: JSON.stringify({ jobId: job._id }),
-    });
+    try {
+      const res = await fetch(`${API_BASE}/api/applications/apply`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ jobId: job._id }),
+      });
 
-    const data = await res.json();
+      const text = await res.text();
+      let data = null;
 
-    if (data.error) {
-      alert(data.error);
-    } else {
-      alert(data.message || "Applied!");
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to apply for job");
+      }
+
+      alert(data?.message || "Applied successfully!");
+    } catch (err) {
+      alert(err.message || "Something went wrong while applying.");
     }
   };
 
@@ -39,7 +55,8 @@ function JobCard({ job }) {
 
       <div className="grid grid-cols-2 gap-4 text-sm mb-2">
         <p>
-          <span className="font-semibold">📍 Location:</span> {job.location}
+          <span className="font-semibold">📍 Location:</span>{" "}
+          {job.location}
         </p>
         <p>
           <span className="font-semibold">💰 Salary:</span> ₹{job.salary}
@@ -53,7 +70,7 @@ function JobCard({ job }) {
         </p>
       )}
 
-      {/* ✅ Correct distance display (meters → km) */}
+      {/* ✅ Distance display (meters → km) */}
       {typeof job.distance === "number" && (
         <p className="mt-2 text-sm text-blue-600 font-medium">
           <strong>Distance:</strong>{" "}
@@ -72,6 +89,7 @@ function JobCard({ job }) {
 }
 
 export default JobCard;
+
 
 
 
