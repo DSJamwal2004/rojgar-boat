@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
+import { apiFetch } from "./api";
 
 function EmployerLogin() {
   const [phone, setPhone] = useState("");
@@ -15,23 +16,21 @@ function EmployerLogin() {
   }, [navigate]);
 
   const handleLogin = async () => {
-    const res = await fetch("/api/auth/employer/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, password }),
-    });
+    setMessage("");
 
-    const data = await res.json();
+    try {
+      const data = await apiFetch("/api/auth/employer/login", {
+        method: "POST",
+        body: JSON.stringify({ phone, password }),
+      });
 
-    if (data.error) {
-      setMessage(data.error);
-      return;
+      localStorage.setItem("employerToken", data.token);
+      localStorage.setItem("employerId", data.employerId);
+
+      navigate("/employer");
+    } catch (err) {
+      setMessage(err.message);
     }
-
-    localStorage.setItem("employerToken", data.token);
-    localStorage.setItem("employerId", data.employerId);
-
-    navigate("/employer");
   };
 
   return (
@@ -42,7 +41,7 @@ function EmployerLogin() {
         </h2>
 
         <p className="text-center text-gray-600 mb-8">
-          Login to post jobs and manage your applications.
+          Login to post jobs and manage applications.
         </p>
 
         <div className="space-y-4">
@@ -54,7 +53,6 @@ function EmployerLogin() {
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter phone number"
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
@@ -67,16 +65,14 @@ function EmployerLogin() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter password"
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-green-500"
             />
           </div>
 
-          {/* 🔐 Forgot password link */}
           <div className="text-right">
             <Link
               to="/employer/forgot-password"
-              className="text-sm text-green-700 hover:underline"
+              className="text-sm text-green-600 hover:underline"
             >
               Forgot password?
             </Link>
@@ -97,7 +93,7 @@ function EmployerLogin() {
             New employer?{" "}
             <Link
               to="/employer-register"
-              className="text-green-700 font-semibold hover:underline"
+              className="text-green-600 font-semibold hover:underline"
             >
               Register here
             </Link>
@@ -109,6 +105,7 @@ function EmployerLogin() {
 }
 
 export default EmployerLogin;
+
 
 
 

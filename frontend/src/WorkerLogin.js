@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
+import { apiFetch } from "./api";
 
 function WorkerLogin() {
   const [phone, setPhone] = useState("");
@@ -15,23 +16,21 @@ function WorkerLogin() {
   }, [navigate]);
 
   const handleLogin = async () => {
-    const res = await fetch("/api/auth/worker/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone, password }),
-    });
+    setMessage("");
 
-    const data = await res.json();
+    try {
+      const data = await apiFetch("/api/auth/worker/login", {
+        method: "POST",
+        body: JSON.stringify({ phone, password }),
+      });
 
-    if (data.error) {
-      setMessage(data.error);
-      return;
+      localStorage.setItem("workerToken", data.token);
+      localStorage.setItem("workerId", data.workerId);
+
+      navigate("/worker");
+    } catch (err) {
+      setMessage(err.message);
     }
-
-    localStorage.setItem("workerToken", data.token);
-    localStorage.setItem("workerId", data.workerId);
-
-    navigate("/worker");
   };
 
   return (
@@ -55,7 +54,6 @@ function WorkerLogin() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter phone number"
             />
           </div>
 
@@ -68,11 +66,9 @@ function WorkerLogin() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border px-3 py-2 focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter password"
             />
           </div>
 
-          {/* 🔐 Forgot password link */}
           <div className="text-right">
             <Link
               to="/worker/forgot-password"
@@ -109,6 +105,8 @@ function WorkerLogin() {
 }
 
 export default WorkerLogin;
+
+
 
 
 
