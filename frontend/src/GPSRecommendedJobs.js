@@ -3,6 +3,11 @@ import JobCard from "./components/JobCard";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function GPSRecommendedJobs() {
   const [jobs, setJobs] = useState([]);
   const [filteredJobs, setFilteredJobs] = useState([]);
@@ -15,15 +20,20 @@ function GPSRecommendedJobs() {
 
   const token = localStorage.getItem("workerToken");
 
-  // -----------------------------
-  // Update worker GPS (stable)
-  // -----------------------------
+  /* -----------------------------
+     Update worker GPS (SAFE)
+  ------------------------------ */
   const updateWorkerLocation = async () => {
     return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation not supported"));
+        return;
+      }
+
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           try {
-            await fetch("/api/workers/location", {
+            const res = await fetch(`${API_BASE}/api/workers/location`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",
@@ -34,6 +44,12 @@ function GPSRecommendedJobs() {
                 longitude: position.coords.longitude,
               }),
             });
+
+            if (!res.ok) {
+              const text = await res.text();
+              throw new Error(text || "Failed to update location");
+            }
+
             resolve();
           } catch (err) {
             reject(err);
@@ -49,36 +65,51 @@ function GPSRecommendedJobs() {
     });
   };
 
-  // -----------------------------
-  // Fetch GPS jobs
-  // -----------------------------
+  /* -----------------------------
+     Fetch GPS jobs
+  ------------------------------ */
   const fetchGpsJobs = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/jobs/recommend/gps", {
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      });
+      const res = await fetch(
+        `${API_BASE}/api/jobs/recommend/gps`,
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
 
-      const data = await res.json();
+      const text = await res.text();
+      let data = null;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || "No nearby jobs found.");
+      }
 
       if (Array.isArray(data)) {
         setJobs(data);
         setMessage("");
       } else {
-        setMessage(data.error || "No nearby jobs found.");
+        setJobs([]);
+        setMessage(data?.error || "No nearby jobs found.");
       }
-    } catch {
-      setMessage("Failed to fetch nearby jobs.");
+    } catch (err) {
+      setMessage(err.message || "Failed to fetch nearby jobs.");
     } finally {
       setLoading(false);
     }
   };
 
-  // -----------------------------
-  // Initial load
-  // -----------------------------
+  /* -----------------------------
+     Initial load
+  ------------------------------ */
   useEffect(() => {
     if (!token) {
       setMessage("You must login as worker.");
@@ -97,9 +128,9 @@ function GPSRecommendedJobs() {
     })();
   }, [token]);
 
-  // -----------------------------
-  // Apply filters & sorting
-  // -----------------------------
+  /* -----------------------------
+     Apply filters & sorting
+  ------------------------------ */
   useEffect(() => {
     let result = [...jobs];
 
@@ -107,7 +138,8 @@ function GPSRecommendedJobs() {
     if (radius !== "all") {
       const maxMeters = Number(radius) * 1000;
       result = result.filter(
-        (job) => typeof job.distance === "number" && job.distance <= maxMeters
+        (job) =>
+          typeof job.distance === "number" && job.distance <= maxMeters
       );
     }
 
@@ -125,9 +157,9 @@ function GPSRecommendedJobs() {
     setFilteredJobs(result);
   }, [jobs, radius, sortBy]);
 
-  // -----------------------------
-  // Job freshness label
-  // -----------------------------
+  /* -----------------------------
+     Job freshness label
+  ------------------------------ */
   const getFreshness = (date) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -192,7 +224,7 @@ function GPSRecommendedJobs() {
           <p className="text-center text-red-500 mb-6">{message}</p>
         )}
 
-        {!loading && filteredJobs.length === 0 && (
+        {!loading && filteredJobs.length === 0 && !message && (
           <p className="text-center text-gray-500">
             No jobs found for selected filters.
           </p>
