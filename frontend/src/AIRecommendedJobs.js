@@ -42,12 +42,13 @@ function AIRecommendedJobs() {
         }
 
         if (!res.ok) {
-          throw new Error(data?.error || data?.message || "Failed to fetch AI jobs");
+          throw new Error(
+            data?.error || data?.message || "Failed to fetch AI jobs"
+          );
         }
 
         if (Array.isArray(data)) {
           setJobs(data);
-          // ✅ SINGLE SOURCE OF TRUTH FOR AI MATCH COUNT
           localStorage.setItem("aiMatchesCount", String(data.length));
         } else {
           setMessage(data?.error || data?.message || "No AI recommendations.");
@@ -64,7 +65,7 @@ function AIRecommendedJobs() {
     fetchAIJobs();
   }, []);
 
-  // 🧠 Helper: build AI explanation safely
+  /* 🧠 AI explanation */
   const getAIExplanation = (job) => {
     if (job.matchedSkills && job.matchedSkills.length > 0) {
       return `Matched skills: ${job.matchedSkills.join(", ")}`;
@@ -79,12 +80,24 @@ function AIRecommendedJobs() {
     return "Matched based on your profile and experience";
   };
 
-  // 🧠 Helper: AI strength label
+  /* 🧠 AI strength label */
   const getAIStrength = (score = 0) => {
     if (score >= 80) return "Excellent match";
     if (score >= 60) return "Good match";
     if (score >= 40) return "Fair match";
     return "Low match";
+  };
+
+  /* 🕒 Job freshness (same as GPS) */
+  const getFreshness = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+
+    if (mins < 5) return "Just now";
+    if (mins < 60) return `${mins} min ago`;
+    if (mins < 1440) return `${Math.floor(mins / 60)} hours ago`;
+    if (mins < 2880) return "Yesterday";
+    return `${Math.floor(mins / 1440)} days ago`;
   };
 
   return (
@@ -98,27 +111,28 @@ function AIRecommendedJobs() {
           Jobs matched using your skills, experience, and profile.
         </p>
 
-        {/* Loader */}
         {loading && <BoatLoader label="AI is matching jobs for you..." />}
 
-        {/* Error / Info message */}
         {!loading && message && (
           <p className="text-center text-red-500 mb-6">{message}</p>
         )}
 
-        {/* Empty state */}
         {!loading && jobs.length === 0 && !message && (
           <p className="text-center text-gray-500">
             No AI recommendations available yet.
           </p>
         )}
 
-        {/* Job Cards */}
         {!loading && jobs.length > 0 && (
           <div className="grid gap-8">
             {jobs.map((job) => (
               <div key={job._id}>
-                {/* 🤖 AI Meta Card */}
+                {/* 🕒 Posted time */}
+                <div className="flex justify-between text-sm text-gray-500 mb-2">
+                  <span>🕒 {getFreshness(job.createdAt)}</span>
+                </div>
+
+                {/* 🤖 AI Meta */}
                 <div className="mb-3 px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-200">
                   <div className="flex flex-wrap justify-between items-center gap-2">
                     <p className="text-sm font-semibold text-indigo-700">
@@ -137,7 +151,6 @@ function AIRecommendedJobs() {
                   </p>
                 </div>
 
-                {/* Job Card */}
                 <JobCard job={job} />
               </div>
             ))}
@@ -149,6 +162,7 @@ function AIRecommendedJobs() {
 }
 
 export default AIRecommendedJobs;
+
 
 
 
