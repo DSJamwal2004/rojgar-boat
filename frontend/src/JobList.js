@@ -42,6 +42,18 @@ function JobList() {
     fetchJobs();
   }, []);
 
+  /* 🕒 Job freshness helper (same as GPS) */
+  const getFreshness = (date) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+
+    if (mins < 5) return "Just now";
+    if (mins < 60) return `${mins} min ago`;
+    if (mins < 1440) return `${Math.floor(mins / 60)} hours ago`;
+    if (mins < 2880) return "Yesterday";
+    return `${Math.floor(mins / 1440)} days ago`;
+  };
+
   return (
     <OceanLayout>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-3xl shadow-xl px-8 py-10 mx-auto">
@@ -64,7 +76,14 @@ function JobList() {
         {!loading && jobs.length > 0 && (
           <div className="grid gap-8">
             {jobs.map((job) => (
-              <JobCard key={job._id} job={job} />
+              <div key={job._id}>
+                {/* 🕒 Posted time */}
+                <div className="flex justify-end text-sm text-gray-500 mb-2">
+                  <span>🕒 {getFreshness(job.createdAt)}</span>
+                </div>
+
+                <JobCard job={job} />
+              </div>
             ))}
           </div>
         )}
@@ -74,6 +93,7 @@ function JobList() {
 }
 
 export default JobList;
+
 
 
 
