@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from "react";
 import OceanLayout from "./components/OceanLayout";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function JobPost() {
   const [form, setForm] = useState({
     title: "",
@@ -49,7 +54,7 @@ function JobPost() {
             longitude: pos.coords.longitude,
           };
 
-          const res = await fetch("/api/jobs/create", {
+          const res = await fetch(`${API_BASE}/api/jobs/create`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -58,22 +63,29 @@ function JobPost() {
             body: JSON.stringify(payload),
           });
 
-          const data = await res.json();
+          const text = await res.text();
+          let data = null;
 
-          if (data.error) {
-            alert(data.error);
-          } else {
-            alert("Job posted successfully!");
-            setForm({
-              title: "",
-              description: "",
-              skillsRequired: "",
-              salary: "",
-              location: "",
-            });
+          try {
+            data = text ? JSON.parse(text) : null;
+          } catch {
+            throw new Error("Invalid server response");
           }
+
+          if (!res.ok) {
+            throw new Error(data?.error || "Failed to post job.");
+          }
+
+          alert("Job posted successfully!");
+          setForm({
+            title: "",
+            description: "",
+            skillsRequired: "",
+            salary: "",
+            location: "",
+          });
         } catch (err) {
-          alert("Failed to post job.");
+          alert(err.message || "Failed to post job.");
         } finally {
           setPosting(false);
         }
@@ -156,6 +168,7 @@ function JobPost() {
 }
 
 export default JobPost;
+
 
 
 
