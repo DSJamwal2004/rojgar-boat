@@ -3,15 +3,43 @@ import JobCard from "./components/JobCard";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function JobList() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetch("/api/jobs")
-      .then((res) => res.json())
-      .then((data) => setJobs(data))
-      .finally(() => setLoading(false));
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/jobs`);
+
+        const text = await res.text();
+        let data = null;
+
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          throw new Error("Invalid server response");
+        }
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to fetch jobs");
+        }
+
+        setJobs(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setMessage(err.message || "Failed to load jobs");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJobs();
   }, []);
 
   return (
@@ -21,9 +49,19 @@ function JobList() {
           All Jobs
         </h2>
 
-        {loading ? (
-          <BoatLoader label="Fetching jobs..." />
-        ) : (
+        {loading && <BoatLoader label="Fetching jobs..." />}
+
+        {!loading && message && (
+          <p className="text-center text-red-500">{message}</p>
+        )}
+
+        {!loading && !message && jobs.length === 0 && (
+          <p className="text-center text-gray-500">
+            No jobs available at the moment.
+          </p>
+        )}
+
+        {!loading && jobs.length > 0 && (
           <div className="grid gap-8">
             {jobs.map((job) => (
               <JobCard key={job._id} job={job} />
@@ -36,6 +74,7 @@ function JobList() {
 }
 
 export default JobList;
+
 
 
 
