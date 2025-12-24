@@ -12,6 +12,7 @@ function JobList() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -42,7 +43,7 @@ function JobList() {
     fetchJobs();
   }, []);
 
-  /* 🕒 Job freshness helper (same as GPS) */
+  /* 🕒 Job freshness helper */
   const getFreshness = (date) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -54,12 +55,39 @@ function JobList() {
     return `${Math.floor(mins / 1440)} days ago`;
   };
 
+  /* 🔀 Sorting logic */
+  const sortedJobs = [...jobs].sort((a, b) => {
+    if (sortBy === "newest") {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+    if (sortBy === "oldest") {
+      return new Date(a.createdAt) - new Date(b.createdAt);
+    }
+    if (sortBy === "salary") {
+      return (b.salary || 0) - (a.salary || 0);
+    }
+    return 0;
+  });
+
   return (
     <OceanLayout>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-3xl shadow-xl px-8 py-10 mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-6">
-          All Jobs
-        </h2>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <h2 className="text-3xl font-bold text-center md:text-left">
+            All Jobs
+          </h2>
+
+          {/* 🔀 Sort dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="mt-4 md:mt-0 border rounded-xl px-4 py-2 text-sm font-semibold bg-white shadow-sm"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="salary">Highest salary</option>
+          </select>
+        </div>
 
         {loading && <BoatLoader label="Fetching jobs..." />}
 
@@ -67,15 +95,15 @@ function JobList() {
           <p className="text-center text-red-500">{message}</p>
         )}
 
-        {!loading && !message && jobs.length === 0 && (
+        {!loading && !message && sortedJobs.length === 0 && (
           <p className="text-center text-gray-500">
             No jobs available at the moment.
           </p>
         )}
 
-        {!loading && jobs.length > 0 && (
+        {!loading && sortedJobs.length > 0 && (
           <div className="grid gap-8">
-            {jobs.map((job) => (
+            {sortedJobs.map((job) => (
               <div key={job._id}>
                 {/* 🕒 Posted time */}
                 <div className="flex justify-end text-sm text-gray-500 mb-2">
@@ -93,6 +121,7 @@ function JobList() {
 }
 
 export default JobList;
+
 
 
 
