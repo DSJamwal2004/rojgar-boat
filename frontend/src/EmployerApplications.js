@@ -3,6 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function EmployerApplications() {
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -13,24 +18,38 @@ function EmployerApplications() {
 
   const token = localStorage.getItem("employerToken");
 
-  const fetchApplications = () => {
+  /* ---------------- FETCH APPLICATIONS ---------------- */
+  const fetchApplications = async () => {
     setLoading(true);
-    fetch(`/api/applications/employer/job/${jobId}`, {
-      headers: { Authorization: "Bearer " + token },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setApps(data);
-          setMessage("");
-        } else if (data.error || data.message) {
-          setMessage(data.error || data.message);
-        } else {
-          setMessage("No applications found.");
+    setMessage("");
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/applications/employer/job/${jobId}`,
+        {
+          headers: { Authorization: "Bearer " + token },
         }
-      })
-      .catch(() => setMessage("Failed to load applications"))
-      .finally(() => setLoading(false));
+      );
+
+      const text = await res.text();
+      let data = null;
+
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        throw new Error("Invalid server response");
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || "Failed to load applications");
+      }
+
+      setApps(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setMessage(err.message || "Failed to load applications");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -49,26 +68,52 @@ function EmployerApplications() {
     fetchApplications();
   }, [token, jobId]);
 
+  /* ---------------- ACCEPT ---------------- */
   const handleAccept = async (appId) => {
-    const res = await fetch(`/api/applications/${appId}/accept`, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token },
-    });
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/applications/${appId}/accept`,
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
 
-    const data = await res.json();
-    if (data.error) setMessage(data.error);
-    else fetchApplications();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to accept application");
+      }
+
+      fetchApplications();
+    } catch (err) {
+      setMessage(err.message);
+    }
   };
 
+  /* ---------------- REJECT ---------------- */
   const handleReject = async (appId) => {
-    const res = await fetch(`/api/applications/${appId}/reject`, {
-      method: "POST",
-      headers: { Authorization: "Bearer " + token },
-    });
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/applications/${appId}/reject`,
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
 
-    const data = await res.json();
-    if (data.error) setMessage(data.error);
-    else fetchApplications();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to reject application");
+      }
+
+      fetchApplications();
+    } catch (err) {
+      setMessage(err.message);
+    }
   };
 
   return (
@@ -205,6 +250,7 @@ function EmployerApplications() {
 }
 
 export default EmployerApplications;
+
 
 
 
