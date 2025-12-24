@@ -3,12 +3,18 @@ import JobCard from "./components/JobCard";
 import OceanLayout from "./components/OceanLayout";
 import BoatLoader from "./components/BoatLoader";
 
+/* ✅ BACKEND BASE (Render) */
+const API_BASE =
+  process.env.REACT_APP_API_URL ||
+  "https://rojgar-boat-backend.onrender.com";
+
 function AIRecommendedJobs() {
   const [jobs, setJobs] = useState([]);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 🔒 Reset AI match count on page load
     localStorage.setItem("aiMatchesCount", "0");
 
     const token = localStorage.getItem("workerToken");
@@ -18,29 +24,44 @@ function AIRecommendedJobs() {
       return;
     }
 
-    fetch("/api/jobs/recommend/ai", {
-      headers: {
-        Authorization: "Bearer " + token,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    const fetchAIJobs = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/jobs/recommend/ai`, {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        });
+
+        const text = await res.text();
+        let data = null;
+
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          throw new Error("Invalid server response");
+        }
+
+        if (!res.ok) {
+          throw new Error(data?.error || data?.message || "Failed to fetch AI jobs");
+        }
+
         if (Array.isArray(data)) {
           setJobs(data);
-
           // ✅ SINGLE SOURCE OF TRUTH FOR AI MATCH COUNT
           localStorage.setItem("aiMatchesCount", String(data.length));
         } else {
-          setMessage(data.error || data.message);
+          setMessage(data?.error || data?.message || "No AI recommendations.");
           localStorage.setItem("aiMatchesCount", "0");
         }
-        setLoading(false);
-      })
-      .catch(() => {
-        setMessage("Failed to fetch AI recommended jobs.");
+      } catch (err) {
+        setMessage(err.message || "Failed to fetch AI recommended jobs.");
         localStorage.setItem("aiMatchesCount", "0");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    fetchAIJobs();
   }, []);
 
   // 🧠 Helper: build AI explanation safely
@@ -69,7 +90,6 @@ function AIRecommendedJobs() {
   return (
     <OceanLayout>
       <div className="w-full max-w-6xl bg-white/95 backdrop-blur-md rounded-3xl shadow-xl px-8 py-10 mx-auto">
-        {/* Header */}
         <h2 className="text-3xl md:text-4xl font-extrabold text-center mb-2 text-gray-900">
           AI Recommended Jobs
         </h2>
@@ -129,6 +149,7 @@ function AIRecommendedJobs() {
 }
 
 export default AIRecommendedJobs;
+
 
 
 
