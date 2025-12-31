@@ -252,4 +252,5 @@ This project demonstrates:
 
    - Production-ready architecture
 
-
+## LICENSE 
+This project is licensed under the MIT License.
