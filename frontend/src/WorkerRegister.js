@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import OceanLayout from "./components/OceanLayout";
 
+/* ✅ NEW IMPORTS */
+import DisclaimerModal from "./components/DisclaimerModal";
+import useDisclaimer from "./components/useDisclaimer";
+
 /* ✅ BACKEND BASE URL (Render) */
 const API_BASE =
   process.env.REACT_APP_API_URL ||
@@ -9,6 +13,9 @@ const API_BASE =
 
 function WorkerRegister() {
   const navigate = useNavigate();
+
+  /* ✅ DISCLAIMER HOOK */
+  const { accepted, acceptDisclaimer } = useDisclaimer();
 
   const [form, setForm] = useState({
     name: "",
@@ -110,7 +117,18 @@ function WorkerRegister() {
   /* ---------- UI ---------- */
   return (
     <OceanLayout>
-      <div className="w-full max-w-3xl bg-white/90 backdrop-blur-md shadow-xl rounded-3xl px-8 py-10 border">
+
+      {/* ✅ DISCLAIMER MODAL */}
+      {!accepted && (
+        <DisclaimerModal onAccept={acceptDisclaimer} />
+      )}
+
+      {/* ✅ DISABLE UI IF NOT ACCEPTED */}
+      <div
+        className={`w-full max-w-3xl bg-white/90 backdrop-blur-md shadow-xl rounded-3xl px-8 py-10 border ${
+          !accepted ? "pointer-events-none opacity-50" : ""
+        }`}
+      >
         <h2 className="text-3xl font-extrabold text-center mb-2">
           Worker Registration
         </h2>
@@ -239,6 +257,12 @@ function WorkerRegister() {
             >
               Register
             </button>
+
+            {/* ✅ DISCLAIMER TEXT */}
+            <p className="text-xs text-center mt-3 text-gray-600">
+              By registering, you agree to our Terms & Disclaimer
+            </p>
+            
           </div>
         </form>
 

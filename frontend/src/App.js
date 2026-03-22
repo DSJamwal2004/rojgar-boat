@@ -36,8 +36,9 @@ import HomePage from "./HomePage";
 import WorkerProfile from "./WorkerProfile";
 import EmployerProfile from "./EmployerProfile";
 
-// Worker applications
 import WorkerApplications from "./WorkerApplications";
+
+import Terms from "./Terms";
 
 function App() {
   return (
@@ -189,6 +190,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/terms" element={<Terms />} />
+        
       </Routes>
     </BrowserRouter>
   );
